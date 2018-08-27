@@ -13,9 +13,9 @@ import argparse
 import os
 from prettytable import PrettyTable
 
-def analyse(data):
-    max_index = np.argmax(data[1])
-    max_db = data[1][max_index]
+def analyse(data, args):
+    max_index = np.argmax(data[-1])
+    max_db = data[-1][max_index]
     freq = data[0][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
     global tabulated_data
@@ -55,13 +55,14 @@ def run_test(args):
                     plot_data(data)
                 if args.save_data == 1:
                     store_data(data, args.uut[0], module, chan, args)
-                analyse(data)
+                analyse(data, args)
 
     t = PrettyTable(['CH', 'normal dB', 'normal Hz', 'shorted dB', 'shorted Hz', "CMRR"])
     ch = 0
     while ch < 16*args.modules:
-        # print("channel: ", ch, tabulated_data[ch][0], "dB ", tabulated_data[ch][1], "Hz ", tabulated_data[ch+16*args.modules][0], "dB", tabulated_data[ch+16*args.modules][1], "Hz")
-        t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], tabulated_data[ch+16*args.modules][1], tabulated_data[ch][0] - tabulated_data[ch+16*args.modules][0]])
+        t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], \
+                   tabulated_data[ch+16*args.modules][1], tabulated_data[ch][0] - \
+                   tabulated_data[ch+16*args.modules][0]])
         ch+=1
     print(t)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
@@ -74,9 +75,13 @@ def retrieve_data(carrier, module, channel, args):
         channel = int(channel) - 8
         channel = "{:02d}".format(int(channel))
     ydata = epics.caget("{}:{}:AI:WF:PS:{}.VALA".format(carrier, module, channel)) # data in dB
-    xdata = epics.caget("{}:{}:AI:WF:PS:{}.VALB".format(carrier, module, channel)) # data in Hz
-    return [xdata, ydata]
+    if args.save_freq_data == 1:
+        xdata = epics.caget("{}:{}:AI:WF:PS:{}.VALB".format(carrier, module, channel)) # data in Hz
+        return [xdata, ydata]
+    else:
+        xdata = epics.caget("{}:{}:AI:WF:PS:01.VALB".format(carrier, module))  # data in Hz
 
+    return [xdata, ydata]
 
 def store_data(data, carrier, module, channel, args):
     dir = "/home/dt100/CMR/{}/module_{}/CH{}".format(carrier, module, channel)
@@ -96,6 +101,7 @@ def run_main():
     parser.add_argument('--modules', default=3, type=int, help="Number of acq482 modules in EACH carrier. Max = 3.")
     parser.add_argument('--save_data', default=1, type=int, help="Whether to store data or not (test run).")
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
+    parser.add_argument('--save_freq_data', default=0, type=int, help="")
 
     parser.add_argument('uut', nargs='+', help="uut")
     run_test(parser.parse_args())
