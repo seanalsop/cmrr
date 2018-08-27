@@ -14,9 +14,16 @@ import os
 from prettytable import PrettyTable
 
 def analyse(data, args):
-    max_index = np.argmax(data[-1])
-    max_db = data[-1][max_index]
-    freq = data[0][max_index]
+    for item in data[1][2:]:
+    
+        print(item)
+    
+    max_index = np.argmax((data[-1][2:]))
+    print("max_index=", max_index)
+    max_db = data[-1][2:][max_index]
+
+    max_db = data[1][2:][max_index]
+    freq = data[0][2:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
     global tabulated_data
     tabulated_data.append((max_db, freq))
@@ -44,7 +51,7 @@ def run_test(args):
     global tabulated_data
     channels = list(range(1, 17))
     for mode in ["Normal configuration", "Shorted configuration"]:
-        for module in range(1, args.modules+1):
+        for module in range(1, args.modules*2+1, 2):
             print("Carrier in use: ", args.uut[0])
             for chan in channels:
                 chan = "{:02d}".format(chan)
@@ -74,6 +81,7 @@ def retrieve_data(carrier, module, channel, args):
         module += 1
         channel = int(channel) - 8
         channel = "{:02d}".format(int(channel))
+    print("module: ",module, "channel: ", channel)
     ydata = epics.caget("{}:{}:AI:WF:PS:{}.VALA".format(carrier, module, channel)) # data in dB
     if args.save_freq_data == 1:
         xdata = epics.caget("{}:{}:AI:WF:PS:{}.VALB".format(carrier, module, channel)) # data in Hz
