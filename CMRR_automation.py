@@ -2,10 +2,33 @@
 
 """
 A python script to automate the collection of data during a CMRR test for acq482.
+Assumes that carrier has 3 modules.
+
+Example usage:
+
+    python CMRR_automation.py acq2106_105
+
+Example usage for carrier without 2 modules:
+
+    python CMRR_automation.py --modules=2 acq2106_105
+
+Dependencies:
+    Requires pyepics, matplotlib, numpy, prettytable.
+    All of these are available as dt100 on endor.
+
+Run from:
+
+    /home/dt100/CMR/cmrr
+
+    ie:
+    cd /home/dt100/CMR/cmrr
+    python CMRR_automation.py acq2106_105
+
+Data is saved one directory up in /home/dt100/CMR/<UUT Name>
+
 """
 
 from __future__ import print_function
-import acq400_hapi
 import epics
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,14 +37,8 @@ import os
 from prettytable import PrettyTable
 
 def analyse(data, args):
-    for item in data[1][2:]:
-    
-        print(item)
-    
-    max_index = np.argmax((data[-1][2:]))
-    print("max_index=", max_index)
-    max_db = data[-1][2:][max_index]
 
+    max_index = np.argmax((data[-1][2:]))
     max_db = data[1][2:][max_index]
     freq = data[0][2:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
@@ -45,26 +62,27 @@ def plot_data(data):
 
 
 def run_test(args):
-    #uut = acq400_hapi.Acq400(args.uut[0])
-    #uut.MODE.CONTINUOUS
-    raw_input("This test has been configured for system: {}, with {} modules. If this is correct please press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
+
+    raw_input("Test configured for system: {} with {} modules. If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
     global tabulated_data
     channels = list(range(1, 17))
-    for mode in ["Normal configuration", "Shorted configuration"]:
+    for mode in ["Standard configuration", "CMR configuration"]:
         for module in range(1, args.modules*2+1, 2):
             print("Carrier in use: ", args.uut[0])
             for chan in channels:
                 chan = "{:02d}".format(chan)
-                raw_input("Please connect channel {} on module {} in {} and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
+                raw_input("Please connect channel {} on site {} in {} and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
 
                 data = retrieve_data(args.uut[0], module, chan, args)
+
                 if args.plot_data == 1:
                     plot_data(data)
                 if args.save_data == 1:
                     store_data(data, args.uut[0], module, chan, args)
+
                 analyse(data, args)
 
-    t = PrettyTable(['CH', 'normal dB', 'normal Hz', 'shorted dB', 'shorted Hz', "CMRR"])
+    t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
     ch = 0
     while ch < 16*args.modules:
         t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], \
@@ -75,6 +93,7 @@ def run_test(args):
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
     results_file.write(str(t))
     results_file.close()
+
 
 def retrieve_data(carrier, module, channel, args):
     if int(channel) > 8:
@@ -88,8 +107,8 @@ def retrieve_data(carrier, module, channel, args):
         return [xdata, ydata]
     else:
         xdata = epics.caget("{}:{}:AI:WF:PS:01.VALB".format(carrier, module))  # data in Hz
-
     return [xdata, ydata]
+
 
 def store_data(data, carrier, module, channel, args):
     dir = "/home/dt100/CMR/{}/module_{}/CH{}".format(carrier, module, channel)
