@@ -132,12 +132,14 @@ def get_system_info(args):
     info.append(epics.caget("{}:SYS:VERSION:SW".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:VERSION:FPGA".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:Z:TEMP".format(args.uut[0])))
-
-    for site in [0,1,3,5]:
+    info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], 0)))
+    for site in [1,3,5]:
+        info.append(epics.caget("{}:{}:SERIAL".format(args.uut[0], site)))
         info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], site)))
 
-    table = PrettyTable(["Serial Number", "Software Version", "FPGA Personality", "Zync Temp", "Site 0 Temp", "Site 1 Temp", "Site 3 Temp", "Site 5 Temp"])
-    table.add_row(info)
+    table = PrettyTable()
+    table.add_column(["Serial Num", "SW Version", "FPGA", "Zync Temp", "Site 0 SN", "Site 0 Temp", "Site 1 SN", "Site 1 Temp", "Site 3 SN", "Site 3 Temp", "Site 5 SN", "Site 5 Temp"])
+    table.add_column(info)
     return str(table)
 
 
