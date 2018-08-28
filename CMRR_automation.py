@@ -138,8 +138,8 @@ def get_system_info(args):
         info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], site)))
 
     table = PrettyTable()
-    table.add_column(["Serial Num", "SW Version", "FPGA", "Zync Temp", "Site 0 SN", "Site 0 Temp", "Site 1 SN", "Site 1 Temp", "Site 3 SN", "Site 3 Temp", "Site 5 SN", "Site 5 Temp"])
-    table.add_column(info)
+    table.add_column("Parameters", ["Serial Num", "SW Version", "FPGA", "Zync Temp", "Site 0 Temp", "Site 1 SN", "Site 1 Temp", "Site 3 SN", "Site 3 Temp", "Site 5 SN", "Site 5 Temp"])
+    table.add_column("Values", info)
     return str(table)
 
 
