@@ -104,7 +104,6 @@ def copy_data(args):
     if choice == "y":
         source = "/home/dt100/CMR/{}/".format(args.uut[0])
         destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0], "_".join(str(datetime.datetime.now()).split(" ")))
-        make_data_dir(destination)
         shutil.copytree(source, destination)
         print("Data has been recorded in {}".format(destination))
     return None
