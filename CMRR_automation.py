@@ -64,7 +64,7 @@ def plot_data(data):
     plt.show()
 
 
-def configure_uut(uut):
+def configure_uut(uut, args):
     epics.caput("acq2106_105:MODE:CONTINUOUS", 0) # disable streaming before configuring uut.
     epics.caput("{}:AI:WF:PS:SMOO".format(uut), args.smoo)
     epics.caput("acq2106_105:MODE:CONTINUOUS", 1)
@@ -74,7 +74,7 @@ def run_test(args):
 
     raw_input("Test configured for system: {} with {} modules. If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
 
-    configure_uut(args.uut[0])
+    configure_uut(args.uut[0], args)
 
     global tabulated_data
     channels = list(range(1, 17))
