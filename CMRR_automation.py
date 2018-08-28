@@ -34,6 +34,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import os
+import shutil
+import datetime
 from prettytable import PrettyTable
 
 def analyse(data, args):
@@ -93,6 +95,19 @@ def run_test(args):
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
     results_file.write(str(t))
     results_file.close()
+
+    copy_data(args)
+
+
+def copy_data(args):
+    choice = raw_input("Data collection finished. Would you like to store this data in the final data directory? y/n: ")
+    if choice == "y":
+        source = "/home/dt100/CMR/{}/".format(args.uut[0])
+        destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0], "_".join(str(datetime.datetime.now()).split(" ")))
+        make_data_dir(destination)
+        shutil.copytree(source, destination)
+        print("Data has been recorded in {}".format(destination))
+    return None
 
 
 def retrieve_data(carrier, module, channel, args):
