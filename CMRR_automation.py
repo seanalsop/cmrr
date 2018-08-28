@@ -36,10 +36,11 @@ import argparse
 import os
 import shutil
 import datetime
+import acq400_hapi
 from prettytable import PrettyTable
 
-def analyse(data, args):
 
+def analyse(data, args):
     max_index = np.argmax((data[-1][2:]))
     max_db = data[1][2:][max_index]
     freq = data[0][2:][max_index]
@@ -63,9 +64,18 @@ def plot_data(data):
     plt.show()
 
 
+def configure_uut(uut):
+    epics.caput("acq2106_105:MODE:CONTINUOUS", 0) # disable streaming before configuring uut.
+    epics.caput("{}:AI:WF:PS:SMOO".format(uut), args.smoo)
+    epics.caput("acq2106_105:MODE:CONTINUOUS", 1)
+
+
 def run_test(args):
 
     raw_input("Test configured for system: {} with {} modules. If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
+
+    configure_uut(args.uut[0])
+
     global tabulated_data
     channels = list(range(1, 17))
     for mode in ["Standard configuration", "CMR configuration"]:
@@ -84,19 +94,50 @@ def run_test(args):
 
                 analyse(data, args)
 
-    t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
-    ch = 0
-    while ch < 16*args.modules:
-        t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], \
-                   tabulated_data[ch+16*args.modules][1], tabulated_data[ch][0] - \
-                   tabulated_data[ch+16*args.modules][0]])
-        ch+=1
-    print(t)
+    sys_info_table = get_system_info(args)
+    results_table = get_results_table(args)
+    final_table = sys_info_table + "\n\n" + results_table
+
+    # t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
+    # ch = 0
+    # while ch < 16*args.modules:
+    #     t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], \
+    #                tabulated_data[ch+16*args.modules][1], tabulated_data[ch][0] - \
+    #                tabulated_data[ch+16*args.modules][0]])
+    #     ch+=1
+
+    print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
-    results_file.write(str(t))
+    results_file.write(final_table)
     results_file.close()
 
     copy_data(args)
+
+
+def get_results_table(args):
+    global tabulated_data
+    t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
+    ch = 0
+    while ch < 16 * args.modules:
+        t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
+                   tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
+                   tabulated_data[ch + 16 * args.modules][0]])
+        ch += 1
+
+
+def get_system_info(args):
+    info = []
+    info.append(epics.caget("{}:0:SERIAL".format(args.uut[0])))
+    info.append(epics.caget("{}:SYS:VERSION:SW".format(args.uut[0])))
+    info.append(epics.caget("{}:SYS:VERSION:FPGA".format(args.uut[0])))
+    info.append(epics.caget("{}:SYS:Z:TEMP".format(args.uut[0])))
+
+    for site in [0,1,3,5]:
+        info.append(epics.caget("{}:SYS:{}:TMP".format(args.uut[0], site)))
+
+    table = PrettyTable(["Serial Number", "Software Version", "FPGA Personality", "Zync Temp", "Site 0 Temp", "Site 3 Temp", "Site 5 Temp"])
+    table.add_row(info)
+    return str(table)
 
 
 def copy_data(args):
@@ -143,7 +184,7 @@ def run_main():
     parser.add_argument('--save_data', default=1, type=int, help="Whether to store data or not (test run).")
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
-
+    parser.add_argument('--smoo', default=0.75, type=float, help="Smoothing factor")
     parser.add_argument('uut', nargs='+', help="uut")
     run_test(parser.parse_args())
 
