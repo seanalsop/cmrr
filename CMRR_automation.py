@@ -28,6 +28,7 @@ Data is saved one directory up in /home/dt100/CMR/<UUT Name>
 
 """
 
+
 from __future__ import print_function
 import epics
 import matplotlib.pyplot as plt
@@ -36,7 +37,6 @@ import argparse
 import os
 import shutil
 import datetime
-import acq400_hapi
 from prettytable import PrettyTable
 
 
@@ -73,7 +73,6 @@ def configure_uut(uut, args):
 def run_test(args):
 
     raw_input("Test configured for system: {} with {} modules. If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
-
     configure_uut(args.uut[0], args)
 
     global tabulated_data
@@ -98,19 +97,10 @@ def run_test(args):
     results_table = get_results_table(args)
     final_table = sys_info_table + "\n\n" + results_table
 
-    # t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
-    # ch = 0
-    # while ch < 16*args.modules:
-    #     t.add_row([ch+1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch+16*args.modules][0], \
-    #                tabulated_data[ch+16*args.modules][1], tabulated_data[ch][0] - \
-    #                tabulated_data[ch+16*args.modules][0]])
-    #     ch+=1
-
     print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
     results_file.write(final_table)
     results_file.close()
-
     copy_data(args)
 
 
