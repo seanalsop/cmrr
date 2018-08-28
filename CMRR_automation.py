@@ -123,6 +123,7 @@ def get_results_table(args):
                    tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
                    tabulated_data[ch + 16 * args.modules][0]])
         ch += 1
+    return str(t)
 
 
 def get_system_info(args):
