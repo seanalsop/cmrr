@@ -106,8 +106,9 @@ def run_test(args):
 
                     status = analyse(data, args, mode)
                     if status == False:
+
                         choice = raw_input("Potential bad values detected. Would you like to repeat the last channel? y/n: ")
-                        if choice == "y":
+                        if choice != "n":
                             continue
                         else:
                             append_data() # do not need to pass parameters as vars are global
