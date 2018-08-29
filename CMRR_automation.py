@@ -177,7 +177,7 @@ def run_main():
     parser.add_argument('--save_data', default=1, type=int, help="Whether to store data or not (test run).")
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
-    parser.add_argument('--smoo', default=0.75, type=float, help="Smoothing factor")
+    parser.add_argument('--smoo', default=0, type=float, help="Smoothing factor")
     parser.add_argument('uut', nargs='+', help="uut")
     run_test(parser.parse_args())
 
