@@ -40,15 +40,30 @@ import datetime
 from prettytable import PrettyTable
 
 
-def analyse(data, args):
+def analyse(data, args, mode):
+    global max_db
+    global freq
     max_index = np.argmax((data[-1][2:]))
     max_db = data[1][2:][max_index]
     freq = data[0][2:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
+
+    if mode == "Standard configuration":
+        if max_db > -15 or max_db < -19 or freq < 90000 or freq > 110000:
+            print("\n\n")
+            return False
+    if mode == "CMR configuration":
+        if max_db > -80 or max_db < -110 or freq < 90000 or freq > 110000:
+            print("\n\n")
+            return False
+    append_data() # do not need to pass parameters as vars are global
+    print("\n\n")
+    return True
+
+
+def append_data():
     global tabulated_data
     tabulated_data.append((max_db, freq))
-    print("\n\n")
-    return None
 
 
 def make_data_dir(directory):
@@ -65,9 +80,9 @@ def plot_data(data):
 
 
 def configure_uut(uut, args):
-    epics.caput("acq2106_105:MODE:CONTINUOUS", 0) # disable streaming before configuring uut.
+    epics.caput("{}:MODE:CONTINUOUS".format(uut), 0) # disable streaming before configuring uut.
     epics.caput("{}:AI:WF:PS:SMOO".format(uut), args.smoo)
-    epics.caput("acq2106_105:MODE:CONTINUOUS", 1)
+    epics.caput("{}:MODE:CONTINUOUS".format(uut), 1)
 
 
 def run_test(args):
@@ -81,18 +96,31 @@ def run_test(args):
         for module in range(1, args.modules*2+1, 2):
             print("Carrier in use: ", args.uut[0])
             for chan in channels:
+                successful = False
                 chan = "{:02d}".format(chan)
-                raw_input("Please connect channel {} on site {} in {} and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
+                while not successful:
 
-                data = retrieve_data(args.uut[0], module, chan, args)
+                    raw_input("Please connect channel {} on site {} in {} and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
 
-                if args.plot_data == 1:
-                    plot_data(data)
-                if args.save_data == 1:
-                    store_data(data, args.uut[0], module, chan, args)
+                    data = retrieve_data(args.uut[0], module, chan, args)
 
-                analyse(data, args)
+                    status = analyse(data, args, mode)
+                    if status == False:
+                        choice = raw_input("Potential bad values detected. Would you like to repeat the last channel? y/n: ")
+                        if choice == "y":
+                            continue
+                        else:
+                            append_data() # do not need to pass parameters as vars are global
+                            successful = True
+                    else:
+                        if args.plot_data == 1:
+                            plot_data(data)
+                        if args.save_data == 1:
+                            store_data(data, args.uut[0], module, chan, args)
 
+                    #analyse(data, args)
+
+    # print("tabulated_data: ", tabulated_data)
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
     final_table = sys_info_table + "\n\n" + results_table
@@ -184,4 +212,5 @@ def run_main():
 
 if __name__ == '__main__':
     tabulated_data = []
+
     run_main()
