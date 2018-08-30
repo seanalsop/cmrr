@@ -87,7 +87,8 @@ def configure_uut(uut, args):
 
 def run_test(args):
 
-    raw_input("Test configured for system: {} with {} modules. If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
+    raw_input("Test configured for system: {} with {} modules. "
+              "If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
     configure_uut(args.uut[0], args)
 
     global tabulated_data
@@ -100,14 +101,16 @@ def run_test(args):
                 chan = "{:02d}".format(chan)
                 while not successful:
 
-                    raw_input("Please connect channel {} on site {} in {} and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
+                    raw_input("Please connect channel {} on site {} in {} "
+                              "and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
 
                     data = retrieve_data(args.uut[0], module, chan, args)
 
                     status = analyse(data, args, mode)
                     if status == False:
 
-                        choice = raw_input("Potential bad values detected. Would you like to repeat the last channel? y/n: ")
+                        choice = raw_input("Potential bad values detected. "
+                                           "Would you like to repeat the last channel? y/n: ")
                         if choice != "n":
                             continue
                         else:
@@ -119,9 +122,7 @@ def run_test(args):
                         if args.save_data == 1:
                             store_data(data, args.uut[0], module, chan, args)
 
-                    #analyse(data, args)
 
-    # print("tabulated_data: ", tabulated_data)
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
     final_table = sys_info_table + "\n\n" + results_table
@@ -135,7 +136,8 @@ def run_test(args):
 
 def get_results_table(args):
     global tabulated_data
-    t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz', 'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
+    t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz',
+                     'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
     ch = 0
     while ch < 16 * args.modules:
         t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
@@ -157,13 +159,18 @@ def get_system_info(args):
         info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], site)))
 
     table = PrettyTable()
-    table.add_column("Parameters", ["Serial Num", "SW Version", "FPGA", "Zync Temp", "Site 0 Temp", "Site 1 SN", "Site 1 Temp", "Site 3 SN", "Site 3 Temp", "Site 5 SN", "Site 5 Temp"])
+    table.add_column("Parameters", ["Serial Num", "SW Version",
+                                    "FPGA", "Zync Temp", "Site 0 Temp",
+                                    "Site 1 SN", "Site 1 Temp",
+                                    "Site 3 SN", "Site 3 Temp",
+                                    "Site 5 SN", "Site 5 Temp"])
     table.add_column("Values", info)
     return str(table)
 
 
 def copy_data(args):
-    choice = raw_input("Data collection finished. Would you like to store this data in the final data directory? y/n: ")
+    choice = raw_input("Data collection finished. "
+                       "Would you like to store this data in the final data directory? y/n: ")
     if choice == "y":
         source = "/home/dt100/CMR/{}/".format(args.uut[0])
         destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0], "_".join(str(datetime.datetime.now()).split(" ")))
