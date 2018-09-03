@@ -40,6 +40,7 @@ import datetime
 import socket
 import math
 import acq400_hapi
+import time
 from prettytable import PrettyTable
 
 
@@ -102,7 +103,6 @@ def run_test(args):
     configure_uut(args.uut[0], args)
 
     uut1 = acq400_hapi.Acq400(args.uut[0])
-    uut1.s0.arm = 1
 
     global tabulated_data
     channels = list(range(1, 17))
@@ -116,6 +116,8 @@ def run_test(args):
 
                     raw_input("Please connect channel {} on site {} in {} "
                               "and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
+                    uut1.s0.set_arm = 1
+                    time.sleep(10)
 
                     if args.local_fft == 1:
                         data = retrieve_non_fft_data(args.uut[0], module, chan, args)
