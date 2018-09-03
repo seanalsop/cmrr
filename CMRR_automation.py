@@ -120,7 +120,6 @@ def run_test(args):
                         data = retrieve_data(args.uut[0], module, chan, args)
 
                     status = analyse(data, args, mode)
-                    print("status = ", status)
                     if status == False:
 
                         choice = raw_input("Potential bad values detected. "
