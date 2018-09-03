@@ -253,8 +253,8 @@ def perform_fft(data, carrier, module):
     total_energy = 20 * np.log10(total_energy)
     print("total energy = ", total_energy)
 
-    plt.plot(freq_axis, ps)
-    plt.show()
+    # plt.plot(freq_axis, ps)
+    # plt.show()
     return [freq_axis, ft]
 
 
