@@ -39,6 +39,7 @@ import shutil
 import datetime
 import socket
 import math
+import acq400_hapi
 from prettytable import PrettyTable
 
 
@@ -99,6 +100,9 @@ def run_test(args):
     raw_input("Test configured for system: {} with {} modules. "
               "If this is correct press enter. Else ctrl-c and start again".format(args.uut[0], args.modules))
     configure_uut(args.uut[0], args)
+
+    uut1 = acq400_hapi.Acq400(args.uut[0])
+    uut1.s0.arm = 1
 
     global tabulated_data
     channels = list(range(1, 17))
