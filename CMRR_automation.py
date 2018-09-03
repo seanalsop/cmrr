@@ -37,19 +37,28 @@ import argparse
 import os
 import shutil
 import datetime
+import socket
+import math
 from prettytable import PrettyTable
 
 
 def analyse(data, args, mode):
     global max_db
     global freq
-    max_index = np.argmax((data[-1][2:]))
-    max_db = data[1][2:][max_index]
+    total_energy = 0
+    max_index = np.argmax((data[1][2:]))
+
+    for index in range(max_index - 5, max_index + 5):
+        total_energy += (data[1][index]) ** 2
+    total_energy = math.sqrt(total_energy)
+    total_energy = 20 * np.log10(total_energy)
+    max_db = total_energy
+    #max_db = data[1][2:][max_index]
     freq = data[0][2:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
 
     if mode == "Standard configuration":
-        if max_db > -15 or max_db < -19 or freq < 90000 or freq > 110000:
+        if max_db > -2 or max_db < -6 or freq < 90000 or freq > 110000:
             print("\n\n")
             return False
     if mode == "CMR configuration":
@@ -82,7 +91,7 @@ def plot_data(data):
 def configure_uut(uut, args):
     epics.caput("{}:MODE:CONTINUOUS".format(uut), 0) # disable streaming before configuring uut.
     epics.caput("{}:AI:WF:PS:SMOO".format(uut), args.smoo)
-    epics.caput("{}:MODE:CONTINUOUS".format(uut), 1)
+    # epics.caput("{}:MODE:CONTINUOUS".format(uut), 1)
 
 
 def run_test(args):
@@ -104,9 +113,14 @@ def run_test(args):
                     raw_input("Please connect channel {} on site {} in {} "
                               "and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
 
-                    data = retrieve_data(args.uut[0], module, chan, args)
+                    if args.local_fft == 1:
+                        data = retrieve_non_fft_data(args.uut[0], module, chan, args)
+                        data = perform_fft(data, args.uut[0], module)
+                    else:
+                        data = retrieve_data(args.uut[0], module, chan, args)
 
                     status = analyse(data, args, mode)
+                    print("status = ", status)
                     if status == False:
 
                         choice = raw_input("Potential bad values detected. "
@@ -121,6 +135,7 @@ def run_test(args):
                             plot_data(data)
                         if args.save_data == 1:
                             store_data(data, args.uut[0], module, chan, args)
+                        successful = True
 
 
     sys_info_table = get_system_info(args)
@@ -194,6 +209,55 @@ def retrieve_data(carrier, module, channel, args):
     return [xdata, ydata]
 
 
+def retrieve_non_fft_data(carrier, module, channel, args):
+    if int(channel) > 8:
+         module += 1
+         channel = int(channel) - 8
+         channel = "{:02d}".format(int(channel))
+
+    data = ""
+    skt = socket.socket()
+    skt.connect((carrier, int("530" + channel)))
+    while len(data) < 200000:
+        data += skt.recv(4096)
+
+    data = np.frombuffer(data, dtype=np.int16)
+    print("Channel = ", channel)
+
+    xdata = np.linspace(0, 500000, len(data))
+    ydata = data
+    return [xdata, ydata]
+
+
+def perform_fft(data, carrier, module):
+    data[1] = data[1][6:65535]
+    data[1] = data[1] / float(32768)
+
+    ft = abs(np.fft.rfft((data[1]))) # take the fourier transform
+    L = len(data[1])/2 #/ (float())
+    ft = (ft/L)
+
+    ps = 20 * (np.log10(ft)) # Take 20 * log10 of the absolute value of the data
+
+    freq_axis = np.linspace(0, int(epics.caget("{}:{}:ACQ480:OSR".format(carrier, module)))/2, len(ft))
+
+    peak = max(ps)
+    peak_index = np.argmax(ps)
+    print("peak = ", peak)
+    print("peak index = ", peak_index)
+
+    total_energy = 0
+    for index in range(peak_index - 5, peak_index + 5):
+        total_energy += (ft[index]) ** 2
+    total_energy = math.sqrt(total_energy)
+    total_energy = 20 * np.log10(total_energy)
+    print("total energy = ", total_energy)
+
+    plt.plot(freq_axis, ps)
+    plt.show()
+    return [freq_axis, ft]
+
+
 def store_data(data, carrier, module, channel, args):
     dir = "/home/dt100/CMR/{}/module_{}/CH{}".format(carrier, module, channel)
     make_data_dir(dir)
@@ -214,6 +278,9 @@ def run_main():
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
     parser.add_argument('--smoo', default=0, type=float, help="Smoothing factor")
+    parser.add_argument('--local_fft', default=0, type=float, help="Whether to download standard sample data and "
+                                                                   "use it to perform an FFT locally. This is in "
+                                                                   "contrast to downloading FFT data from the UUT.")
     parser.add_argument('uut', nargs='+', help="uut")
     run_test(parser.parse_args())
 
