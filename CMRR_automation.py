@@ -48,23 +48,26 @@ def analyse(data, args, mode):
     global max_db
     global freq
     total_energy = 0
-    max_index = np.argmax((data[1][2:]))
+    max_index = np.argmax((data[1][3:]))
 
     for index in range(max_index - 5, max_index + 5):
         total_energy += (data[1][index]) ** 2
     total_energy = math.sqrt(total_energy)
     total_energy = 20 * np.log10(total_energy)
     max_db = total_energy
-    #max_db = data[1][2:][max_index]
-    freq = data[0][2:][max_index]
+    freq = data[0][3:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
+
+    if args.debug == 1:
+        plt.plot(data[0], data[1])
+        plt.show()
 
     if mode == "Standard configuration":
         if max_db > -2 or max_db < -6 or freq < 90000 or freq > 110000:
             print("\n\n")
             return False
     if mode == "CMR configuration":
-        if max_db > -80 or max_db < -110 or freq < 90000 or freq > 110000:
+        if max_db > -75 or max_db < -110 or freq < 90000 or freq > 110000:
             print("\n\n")
             return False
     append_data() # do not need to pass parameters as vars are global
@@ -215,11 +218,13 @@ def retrieve_data(carrier, module, channel, args):
 
 
 def retrieve_non_fft_data(carrier, module, channel, args):
-    if int(channel) > 8:
-         module += 1
-         channel = int(channel) - 8
-         channel = "{:02d}".format(int(channel))
-
+    if int(module) == 3:
+    #     module += 1
+         channel = int(channel) + 16
+    if int(module) == 5:
+        channel = int(channel) + 32
+    channel = "{:02d}".format(int(channel))
+    print("DEBUG: Channel = ", channel)
     data = ""
     skt = socket.socket()
     skt.connect((carrier, int("530" + channel)))
@@ -235,7 +240,7 @@ def retrieve_non_fft_data(carrier, module, channel, args):
 
 
 def perform_fft(data, carrier, module):
-    data[1] = data[1][6:65535]
+    #data[1] = data[1][6:65535]
     data[1] = data[1] / float(32768)
 
     ft = abs(np.fft.rfft((data[1]))) # take the fourier transform
@@ -283,6 +288,7 @@ def run_main():
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
     parser.add_argument('--smoo', default=0, type=float, help="Smoothing factor")
+    parser.add_argument('--debug', default=0, type=int, help='Enable debug tools.')
     parser.add_argument('--local_fft', default=0, type=float, help="Whether to download standard sample data and "
                                                                    "use it to perform an FFT locally. This is in "
                                                                    "contrast to downloading FFT data from the UUT.")
