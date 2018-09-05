@@ -174,6 +174,7 @@ def get_system_info(args):
     info = []
     info.append(epics.caget("{}:0:SERIAL".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:VERSION:SW".format(args.uut[0])))
+    info.append(epics.caget("{}:1:ACQ480:OSR".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:VERSION:FPGA".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:Z:TEMP".format(args.uut[0])))
     info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], 0)))
@@ -182,7 +183,7 @@ def get_system_info(args):
         info.append(epics.caget("{}:SYS:{}:TEMP".format(args.uut[0], site)))
 
     table = PrettyTable()
-    table.add_column("Parameters", ["Serial Num", "SW Version",
+    table.add_column("Parameters", ["Serial Num", "SW Version", "Site 1 Clk Speed",
                                     "FPGA", "Zync Temp", "Site 0 Temp",
                                     "Site 1 SN", "Site 1 Temp",
                                     "Site 3 SN", "Site 3 Temp",
