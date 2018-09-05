@@ -123,7 +123,8 @@ def run_test(args):
                 while not successful:
 
                     raw_input("Please connect channel {} on site {} in {} "
-                              "and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
+                              "and then press enter to continue: ".format(chan, module, mode))
+                    # {:02d}.format() pada chan to two digits for epics.
 
                     if args.local_fft == 1:
                         uut1.s0.set_arm = 1
@@ -203,7 +204,8 @@ def copy_data(args):
                        "Would you like to store this data in the final data directory? y/n: ")
     if choice == "y":
         source = "/home/dt100/CMR/{}/".format(args.uut[0])
-        destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0], "_".join(str(datetime.datetime.now()).split(" ")))
+        destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0],
+                                                                "_".join(str(datetime.datetime.now()).split(" ")))
         shutil.copytree(source, destination)
         print("Data has been recorded in {}".format(destination))
     return None
