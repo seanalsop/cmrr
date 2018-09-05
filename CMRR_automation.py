@@ -59,7 +59,7 @@ def analyse(data, args, mode):
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
 
     if args.debug == 1:
-        plt.plot(data[0], data[1])
+        plt.plot(20 * np.log10(data[1]))
         plt.show()
 
     if mode == "Standard configuration":
