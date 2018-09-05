@@ -50,15 +50,19 @@ def analyse(data, args, mode):
     total_energy = 0
     max_index = np.argmax((data[1][3:]))
 
-    for index in range(max_index - 5, max_index + 5):
-        total_energy += (data[1][index]) ** 2
-    total_energy = math.sqrt(total_energy)
-    total_energy = 20 * np.log10(total_energy)
-    max_db = total_energy
+    if args.local_fft == 1:
+        for index in range(max_index - 5, max_index + 5):
+            total_energy += (data[1][index]) ** 2
+        total_energy = math.sqrt(total_energy)
+        total_energy = 20 * np.log10(total_energy)
+        max_db = total_energy
+    else:
+        max_db = data[1][3:][max_index]
+
     freq = data[0][3:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
 
-    if args.debug == 1:
+    if args.debug == 1 and args.local_fft == 1:
         plt.plot(20 * np.log10(data[1]))
         plt.show()
 
@@ -96,7 +100,8 @@ def plot_data(data):
 def configure_uut(uut, args):
     epics.caput("{}:MODE:CONTINUOUS".format(uut), 0) # disable streaming before configuring uut.
     epics.caput("{}:AI:WF:PS:SMOO".format(uut), args.smoo)
-    # epics.caput("{}:MODE:CONTINUOUS".format(uut), 1)
+    if args.local_fft == 0:
+        epics.caput("{}:MODE:CONTINUOUS".format(uut), 1)
 
 
 def run_test(args):
@@ -119,12 +124,13 @@ def run_test(args):
 
                     raw_input("Please connect channel {} on site {} in {} "
                               "and then press enter to continue: ".format(chan, module, mode)) # {:02d}.format() pads chan to two digits for epics.
-                    uut1.s0.set_arm = 1
-                    time.sleep(10)
 
                     if args.local_fft == 1:
+                        uut1.s0.set_arm = 1
+                        time.sleep(10)
                         data = retrieve_non_fft_data(args.uut[0], module, chan, args)
                         data = perform_fft(data, args.uut[0], module)
+
                     else:
                         data = retrieve_data(args.uut[0], module, chan, args)
 
