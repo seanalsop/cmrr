@@ -30,6 +30,9 @@ Data is saved one directory up in /home/dt100/CMR/<UUT Name>
 
 
 from __future__ import print_function
+
+from itertools import chain
+
 import epics
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,7 +51,7 @@ def analyse(data, args, mode):
     global max_db
     global freq
     total_energy = 0
-    max_index = np.argmax((data[1][3:]))
+    max_index = np.argmax((data[1][10:]))
 
     if args.local_fft == 1:
         for index in range(max_index - 5, max_index + 5):
@@ -57,9 +60,9 @@ def analyse(data, args, mode):
         total_energy = 20 * np.log10(total_energy)
         max_db = total_energy
     else:
-        max_db = data[1][3:][max_index]
+        max_db = data[1][10:][max_index]
 
-    freq = data[0][3:][max_index]
+    freq = data[0][10:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
 
     if args.debug == 1 and args.local_fft == 1:
@@ -169,11 +172,17 @@ def get_results_table(args):
     t = PrettyTable(['CH', 'standard mode dB', 'standard mode Hz',
                      'CMR mode dB', 'CMR mode Hz', "Calculated CMRR (Results)"])
     ch = 0
-    while ch < 16 * args.modules:
-        t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
-                   tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
-                   tabulated_data[ch + 16 * args.modules][0]])
-        ch += 1
+    if args.ch_retest == 0:
+
+        while ch < 16 * args.modules:
+            t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
+                       tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
+                       tabulated_data[ch + 16 * args.modules][0]])
+            ch += 1
+    else:
+        t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * 0][0], \
+                   tabulated_data[ch + 16 * 0][1], tabulated_data[ch][0] - \
+                   tabulated_data[ch + 16 * 0][0]])
     return str(t)
 
 
@@ -202,10 +211,10 @@ def get_system_info(args):
 def copy_data(args):
     choice = raw_input("Data collection finished. "
                        "Would you like to store this data in the final data directory? y/n: ")
-    if choice == "y":
+    if choice != "n":
         source = "/home/dt100/CMR/{}/".format(args.uut[0])
-        destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0],
-                                                                "_".join(str(datetime.datetime.now()).split(" ")))
+        destination = "/home/dt100/CMR/final_data/{}/{}_CH_{}_RETEST".format(args.uut[0],
+                                                                "_".join(str(datetime.datetime.now()).split(" ")), args.ch_retest)
         shutil.copytree(source, destination)
         print("Data has been recorded in {}".format(destination))
     return None
@@ -215,7 +224,7 @@ def retrieve_data(carrier, module, channel, args):
     if int(channel) > 8:
         module += 1
         channel = int(channel) - 8
-        channel = "{:02d}".format(int(channel))
+    channel = "{:02d}".format(int(channel))
     print("module: ",module, "channel: ", channel)
     ydata = epics.caget("{}:{}:AI:WF:PS:{}.VALA".format(carrier, module, channel)) # data in dB
     if args.save_freq_data == 1:
@@ -289,6 +298,58 @@ def store_data(data, carrier, module, channel, args):
     return None
 
 
+def retest_ch(args):
+    configure_uut(args.uut[0], args)
+    ch = args.ch_retest
+    if ch - 32 > 0:
+        module = 5
+        ch = ch -32
+    elif ch - 16 > 0:
+        module = 3
+        ch = ch -16
+    else:
+        module = 1
+
+    for mode in ["Standard configuration", "CMR configuration"]:
+
+        successful = False
+        while not successful:
+            raw_input("Please connect channel {} on site {} in {} and then press enter to continue: ".format(ch, module, mode))
+
+            data = retrieve_data(args.uut[0], module, ch, args)
+            # print("data = ", data)
+            status = analyse(data, args, mode)
+
+            #if status == False:
+
+            choice = raw_input("This is a retest. "
+                               "Would you like to repeat? y/n: ")
+            if choice != "n":
+                continue
+            else:
+                append_data()  # do not need to pass parameters as vars are global
+                successful = True
+        #else:
+                if args.plot_data == 1:
+                    plot_data(data)
+                if args.save_data == 1:
+                    store_data(data, args.uut[0], module, ch, args)
+                successful = True
+
+    sys_info_table = get_system_info(args)
+    results_table = get_results_table(args)
+    final_table = "THIS IS A CHANNEL RESTEST. No original data included in this file! \n\n" + sys_info_table + "\n\n" + results_table
+
+    print(final_table)
+    results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
+    results_file.write(final_table)
+    results_file.close()
+    copy_data(args)
+
+
+    return None
+
+
 def run_main():
     parser = argparse.ArgumentParser(description='Run CMRR test')
     parser.add_argument('--carrier', default=1, type=int, help="Number of carriers involved in the test.")
@@ -297,12 +358,18 @@ def run_main():
     parser.add_argument('--plot_data', default=0, type=int, help="Whether to plot the data before it gets saved.")
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
     parser.add_argument('--smoo', default=0, type=float, help="Smoothing factor")
+    parser.add_argument('--ch_retest', default=0, type=int, help="Whether to perform a channel retest")
     parser.add_argument('--debug', default=0, type=int, help='Enable debug tools.')
     parser.add_argument('--local_fft', default=0, type=float, help="Whether to download standard sample data and "
                                                                    "use it to perform an FFT locally. This is in "
                                                                    "contrast to downloading FFT data from the UUT.")
     parser.add_argument('uut', nargs='+', help="uut")
-    run_test(parser.parse_args())
+
+    args = parser.parse_args()
+    if args.ch_retest != 0:
+        retest_ch(args)
+    else:
+        run_test(args)
 
 
 if __name__ == '__main__':
