@@ -77,7 +77,7 @@ def analyse(data, args, mode):
         if max_db > -75 or max_db < -110 or freq < 90000 or freq > 110000:
             print("\n\n")
             return False
-    append_data() # do not need to pass parameters as vars are global
+    #append_data() # do not need to pass parameters as vars are global
     print("\n\n")
     return True
 
@@ -176,13 +176,14 @@ def get_results_table(args):
 
         while ch < 16 * args.modules:
             t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
-                       tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
+                       tabulated_data[ch + 16 * args.modules][0], tabulated_data[ch][1] - \
                        tabulated_data[ch + 16 * args.modules][0]])
             ch += 1
     else:
-        t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * 0][0], \
-                   tabulated_data[ch + 16 * 0][1], tabulated_data[ch][0] - \
-                   tabulated_data[ch + 16 * 0][0]])
+        print(tabulated_data)
+        t.add_row([ch + 1, tabulated_data[0][0], tabulated_data[0][1], tabulated_data[1][0], \
+                   tabulated_data[1][1], tabulated_data[0][0] - \
+                   tabulated_data[1][0]])
     return str(t)
 
 
