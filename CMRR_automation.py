@@ -158,7 +158,7 @@ def run_test(args):
 
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
-    final_table = sys_info_table + "\n\n" + results_table
+    final_table = "Sig gen freq = " + args.sig_freq + "\n\n" + sys_info_table + "\n\n" + results_table
 
     print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
@@ -343,7 +343,7 @@ def retest_ch(args):
 
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
-    final_table = "THIS IS A CHANNEL RESTEST. No original data included in this file! \n\n" + sys_info_table + "\n\n" + results_table
+    final_table = "THIS IS A CHANNEL RESTEST. No original data included in this file! \n\n" + "Sig gen freq = " + args.sig_freq + "\n\n" ++ sys_info_table + "\n\n" + results_table
 
     print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
@@ -364,6 +364,7 @@ def run_main():
     parser.add_argument('--save_freq_data', default=0, type=int, help="")
     parser.add_argument('--smoo', default=0, type=float, help="Smoothing factor")
     parser.add_argument('--ch_retest', default=0, type=int, help="Whether to perform a channel retest")
+    parser.add_argument('--sig_freq', default=100000, type=int, help="The frequency of the signal from the sig gen.")
     parser.add_argument('--debug', default=0, type=int, help='Enable debug tools.')
     parser.add_argument('--local_fft', default=0, type=float, help="Whether to download standard sample data and "
                                                                    "use it to perform an FFT locally. This is in "
