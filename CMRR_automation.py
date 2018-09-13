@@ -214,8 +214,12 @@ def copy_data(args):
                        "Would you like to store this data in the final data directory? y/n: ")
     if choice != "n":
         source = "/home/dt100/CMR/{}/".format(args.uut[0])
-        destination = "/home/dt100/CMR/final_data/{}/{}_CH_{}_RETEST".format(args.uut[0],
+        if args.ch_retest != 0:
+            destination = "/home/dt100/CMR/final_data/{}/{}_CH_{}_RETEST".format(args.uut[0],
                                                                 "_".join(str(datetime.datetime.now()).split(" ")), args.ch_retest)
+        else:
+            destination = "/home/dt100/CMR/final_data/{}/{}".format(args.uut[0],
+                                                                "_".join(str(datetime.datetime.now()).split(" ")))
         shutil.copytree(source, destination)
         print("Data has been recorded in {}".format(destination))
     return None
