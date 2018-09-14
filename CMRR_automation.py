@@ -51,7 +51,7 @@ def analyse(data, args, mode):
     global max_db
     global freq
     total_energy = 0
-    max_index = np.argmax((data[1][10:]))
+    max_index = np.argmax((data[1][4:]))
 
     if args.local_fft == 1:
         for index in range(max_index - 5, max_index + 5):
@@ -60,9 +60,9 @@ def analyse(data, args, mode):
         total_energy = 20 * np.log10(total_energy)
         max_db = total_energy
     else:
-        max_db = data[1][10:][max_index]
+        max_db = data[1][4:][max_index]
 
-    freq = data[0][10:][max_index]
+    freq = data[0][4:][max_index]
     print("Peak detected at: ", max_db, "dB at frequency: ", freq, "Hz")
 
     if args.debug == 1 and args.local_fft == 1:
@@ -153,12 +153,13 @@ def run_test(args):
                             plot_data(data)
                         if args.save_data == 1:
                             store_data(data, args.uut[0], module, chan, args)
+                        append_data()
                         successful = True
 
 
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
-    final_table = "Sig gen freq = " + args.sig_freq + "\n\n" + sys_info_table + "\n\n" + results_table
+    final_table = "Sig gen freq = " + str(args.sig_freq) + "\n\n" + sys_info_table + "\n\n" + results_table
 
     print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
@@ -176,7 +177,7 @@ def get_results_table(args):
 
         while ch < 16 * args.modules:
             t.add_row([ch + 1, tabulated_data[ch][0], tabulated_data[ch][1], tabulated_data[ch + 16 * args.modules][0], \
-                       tabulated_data[ch + 16 * args.modules][0], tabulated_data[ch][1] - \
+                       tabulated_data[ch + 16 * args.modules][1], tabulated_data[ch][0] - \
                        tabulated_data[ch + 16 * args.modules][0]])
             ch += 1
     else:
@@ -343,7 +344,7 @@ def retest_ch(args):
 
     sys_info_table = get_system_info(args)
     results_table = get_results_table(args)
-    final_table = "THIS IS A CHANNEL RESTEST. No original data included in this file! \n\n" + "Sig gen freq = " + args.sig_freq + "\n\n" ++ sys_info_table + "\n\n" + results_table
+    final_table = "THIS IS A CHANNEL RESTEST. No original data included in this file! \n\n" + "Sig gen freq = " + str(args.sig_freq) + "\n\n" + sys_info_table + "\n\n" + results_table
 
     print(final_table)
     results_file = open("{}/{}".format("/home/dt100/CMR/{}".format(args.uut[0]), "results"), "wb")
